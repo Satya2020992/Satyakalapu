@@ -1,0 +1,115 @@
+import pandas as pd
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
+import re
+
+pip install xlrd
+
+#Reading the Dataset
+xls = pd.ExcelFile('Exam Stress Final.xlsx')
+df_Gr = pd.read_excel(xls, 'Grades')
+df_Dem = pd.read_excel(xls, 'Demography')
+df_EDA = pd.read_excel(xls, 'EDA')
+df_HR = pd.read_excel(xls, 'HR')
+df_Temp = pd.read_excel(xls, 'Temp')
+df_IBI = pd.read_excel(xls,'IBI')
+
+#q1: Using the mean interbeat interval per minute, calculate the Root Mean Square of successive differences for any 30 minute interval and add this to IBI
+df_IBI['RMSSD'] = df_IBI[(df_IBI["Time in mins"] <= 30)].groupby(['Student_id','Exam'])['IBI'].transform('mean')
+df_IBI['RMSSD'] = df_IBI.groupby(['Student_id','Exam'])['RMSSD'].transform('max')
+print(df_IBI.head(n=600).to_string(index=False))
+
+# q2:Group the rows in the file EDA into 3 parts based on time: First, Second, Third part of each exam
+df_EDA['Parts']=pd.qcut(df_EDA['Time in mins'],3,labels=["Part 1","Part 2", "Part 3"])
+df_EDA.head(100)
+
+# q3:Based on the calculation in question 2, which part of the exam did students suffer maximum stress? You may assume that higher recorded skin conductance co-incides with high levels of stress
+df_AvgEDA = df_EDA.groupby('Parts')['EDA'].mean().reset_index(name='Avg_EDA');
+print("In ",df_AvgEDA.loc[df_AvgEDA['Avg_EDA'].idxmax()]['Parts'],"of the exam, students suffer maximum stress ",df_AvgEDA['Avg_EDA'].max());
+
+# q4:Using Root Mean Square of Successive differences calculated in Q1, calculate and store HRV per exam for every student.
+df_IBI['HRV']=df_IBI['IBI'].std()/(600*df_IBI['RMSSD'])
+df_IBI.head(200)
+
+# q5:Join all tables to produce one file that contains all student 1's readings for IBI, EDA , HR and temp
+df_Merge1 = pd.merge(df_EDA, df_HR,   on=['Student_id','Exam','Time in mins'] , how='inner')
+df_Merge2 = pd.merge(df_Merge1, df_Temp,   on=['Student_id','Exam','Time in mins'] , how='inner')
+df_Merge3 = pd.merge(df_Merge2, df_IBI,   on=['Student_id','Exam','Time in mins'] , how='inner')
+print(df_Merge3[df_Merge3['Student_id'] == 'S01'])
+df_Merge3[df_Merge3['Student_id'] == 'S01'].to_excel('New file_S01.xlsx')
+
+# q6: Calulate the age and Display Age and drop the Date of Birth with  iteratively.  (Replace DOB for other questions when complete)
+from datetime import datetime, date
+dob = df_Dem['DOB']
+def age(born):
+    born = pd.to_datetime(born).date()
+    today = date.today()
+    return today.year - born.year - ((today.month, 
+                                      today.day) < (born.month, 
+                                                    born.day))
+  df_Dem['Age'] = dob.apply(age)
+  df_Dem
+
+# q7: Using numpy functions, transpose and multiply the following arrays
+a=np.arange(4).reshape(2,2)
+b=np.arange(6).reshape(3,2)
+
+a=np.arange(4).reshape(2,2)
+a1=np.transpose(a).shape
+print(a1)
+b = np.arange(6).reshape(3,2)
+b1 = np.transpose(b).shape
+print(b1)
+np.multiply(a1,b1)
+
+# q8: Write a Python program to create an array of 5 integers and display the array items in reverse order
+arr = [1, 2, 3, 4, 5]
+print("Array is :",arr)
+ res = arr[::-1] #reversing using list slicing
+print("reversed array:",res)
+
+# q21: What % of all students are female?
+Dem_counts = df_Dem['Gender'].value_counts()
+total_students = len(df_Dem)
+Female_percent = (Dem_counts.get('F', 0) / total_students) * 100
+print("Percentage:",Female_percent)
+
+
+
+
+# q28: Delete the column age from question 6, using an iterative loop
+for col in df_Dem.columns:
+    if col == 'Age':
+        del df_Dem[col]
+df_Dem.head(3)
+
+# q30:Use the dataset given and Enumerate in Python with any example.
+  for count, enumerate_EDA in enumerate(df_EDA.Student_id):   
+    print(count, enumerate_EDA)
+
+# q61: Create a dataframe with Max EDA and Mean HR as the indices and the count of number of records per student as the value.
+max_EDA = df_EDA.groupby('Student_id')['EDA'].max()
+mean_HR = df_HR.groupby('Student_id')['HR'].mean()
+df_summary = pd.DataFrame(index=max_EDA.index)
+df_summary['Record_Count'] = df_EDA.groupby('Student_id').size()
+df_summary
+
+# q62: Print the Last name like below ouptput eg:.Last Name and count of Last Name Occurance : 
+Counter({'Doe': 2, 'Walters': 1, 'Jones': 1, 'Willows': 1, 'Murray': 1, 'Frederick': 1, 'Wills': 1, 'Cartney': 1, 'Smith': 1})
+from collections import Counter
+data = Counter(df_Dem['Last Name'])
+print("Last Name and count of Last Name Occurance :\n", data)
+
+# q63: Retrieve the row with minimum EDA using sorting technique.
+df_EDA.sort_values(by=['EDA']).head(1)
+
+# q64: get the last letter of last name of students using RegEX
+regex_pattern = '(\w)$'
+df = df_Dem['Last Name'].str.extract(regex_pattern)
+print(df)
+ 
+# q65: Generate a 3x3  Array using Random values between 1to 9  and Fix the values and position  in Next Run.
+random_matrix = np.random.randint(1,9,size=(3,3))
+np.random.seed(1)
+print(random_matrix)
